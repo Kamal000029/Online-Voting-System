@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Election Portal 2026</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --dark: #1f2937;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .voting-container {
+            background: rgba(255, 255, 255, 0.95);
+            width: 100%;
+            max-width: 900px;
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: var(--dark); margin: 0; font-size: 2.5rem; }
+        
+        .id-section {
+            background: #f3f4f6;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        input {
+            width: 80%;
+            max-width: 300px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 18px;
+            transition: 0.3s;
+        }
+
+        input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 10px rgba(79, 70, 229, 0.2); }
+
+        .candidate-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .candidate-card {
+            background: white;
+            border: 2px solid #f0f0f0;
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            transition: 0.3s;
+        }
+
+        .candidate-card:hover { transform: translateY(-10px); border-color: var(--primary); }
+
+        .candidate-img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 15px;
+            border: 4px solid var(--primary);
+        }
+
+        .candidate-name { font-size: 20px; font-weight: bold; margin-bottom: 15px; display: block; }
+
+        .vote-btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .vote-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+
+        .results-panel {
+            background: var(--dark);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+        }
+
+        .progress-wrapper { margin-bottom: 20px; }
+        .progress-info { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .bar-outer { background: #374151; height: 12px; border-radius: 6px; overflow: hidden; }
+        .bar-inner { height: 100%; background: var(--success); width: 0%; transition: 1s ease-out; }
+
+        .error-text { color: var(--danger); font-weight: bold; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="voting-container">
+    <div class="header">
+        <h1>Chunav 2026 🇮🇳</h1>
+        <p>Aapka ek vote desh ka bhavishya badal sakta hai</p>
+    </div>
+
+    <div class="id-section">
+        <label style="display:block; margin-bottom:10px; font-weight:600;">Apna Aadhaar/Voter Number Enter Karein:</label>
+        <input type="text" id="voter-id" placeholder="Enter ID..." onkeyup="validateVoter()">
+        <p id="error-msg" class="error-text">⚠️ Is ID se pehle hi vote diya ja chuka hai!</p>
+    </div>
+
+    <div class="candidate-grid">
+        <div class="candidate-card">
+            <img src="https://via.placeholder.com/150" class="candidate-img" alt="Modi">
+            <span class="candidate-name">Narendra Modi</span>
+            <button class="vote-btn" onclick="submitVote('Modi')" disabled>Vote Dein</button>
+        </div>
+
+        <div class="candidate-card">
+            <img src="https://via.placeholder.com/150" class="candidate-img" alt="Rahul">
+            <span class="candidate-name">Rahul Gandhi</span>
+            <button class="vote-btn" onclick="submitVote('Rahul')" disabled>Vote Dein</button>
+        </div>
+
+        <div class="candidate-card">
+            <img src="https://via.placeholder.com/150" class="candidate-img" alt="Kejriwal">
+            <span class="candidate-name">Arvind Kejriwal</span>
+            <button class="vote-btn" onclick="submitVote('Kejriwal')" disabled>Vote Dein</button>
+        </div>
+    </div>
+
+    <div class="results-panel">
+        <h2 style="margin-top:0; border-bottom:1px solid #374151; padding-bottom:10px;">Live Results</h2>
+        <div id="live-stats"></div>
+    </div>
+</div>
+
+<script>
+    let voteStore = JSON.parse(localStorage.getItem('election_2026')) || { "Modi": 0, "Rahul": 0, "Kejriwal": 0 };
+    let voterList = JSON.parse(localStorage.getItem('voted_ids')) || [];
+
+    function validateVoter() {
+        const idInput = document.getElementById('voter-id').value.trim();
+        const btns = document.querySelectorAll('.vote-btn');
+        const error = document.getElementById('error-msg');
+
+        if(voterList.includes(idInput)) {
+            error.style.display = "block";
+            btns.forEach(b => b.disabled = true);
+        } else if(idInput.length > 3) {
+            error.style.display = "none";
+            btns.forEach(b => b.disabled = false);
+        } else {
+            btns.forEach(b => b.disabled = true);
+        }
+    }
+
+    function submitVote(name) {
+        const id = document.getElementById('voter-id').value.trim();
+        
+        voteStore[name]++;
+        voterList.push(id);
+
+        localStorage.setItem('election_2026', JSON.stringify(voteStore));
+        localStorage.setItem('voted_ids', JSON.stringify(voterList));
+
+        alert(`Dhanyawad! Aapne ${name} ko vote diya.`);
+        document.getElementById('voter-id').value = "";
+        validateVoter();
+        renderResults();
+    }
+
+    function renderResults() {
+        const statsArea = document.getElementById('live-stats');
+        const total = Object.values(voteStore).reduce((a,b) => a+b, 0);
+
+        let html = "";
+        for(let name in voteStore) {
+            let pct = total > 0 ? Math.round((voteStore[name]/total)*100) : 0;
+            html += `
+                <div class="progress-wrapper">
+                    <div class="progress-info">
+                        <span>${name}</span>
+                        <span>${voteStore[name]} Votes (${pct}%)</span>
+                    </div>
+                    <div class="bar-outer">
+                        <div class="bar-inner" style="width: ${pct}%"></div>
+                    </div>
+                </div>
+            `;
+        }
+        statsArea.innerHTML = html;
+    }
+
+    renderResults();
+</script>
+
+</body>
+</html>
